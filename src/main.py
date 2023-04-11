@@ -1,8 +1,9 @@
-
+from plateRecognition import PlateRecognition
 
 
 def main():
-    pass
+    pr = PlateRecognition(debug=True)
+    pr.run()
 
 
 if __name__ == '__main__':
