@@ -1,3 +1,4 @@
+import re
 import time
 
 import cv2 as cv
@@ -12,6 +13,8 @@ class PlateRecognition():
         self.CAPTURE = cv.VideoCapture(0)
         self.debug = debug
         self.frame_rate = 20
+        # self.text_pattern = re.compile(r'[A-Z]{2,3}[ ]?[0-9A-Z]{4,5}') # TODO fix regex
+        self.text_pattern = re.compile(r'[a-zA-Z0-9 ]*')
 
         if not self.CAPTURE.isOpened():
             print("Cannot open camera")
@@ -34,9 +37,15 @@ class PlateRecognition():
             # Plate detection
             ret, frame = self.CAPTURE.read()
             plate_img = self.detectPlate(frame)
+            if plate_img is None:
+                continue
+
+            plate_number = self.retrive_plate_number(plate_img)
+
 
             if self.debug and plate_img is not None:
-                cv.imshow('Video capture', plate_img)  
+                cv.imshow('Video capture', plate_img)
+                print(f'Found {plate_number = }')
 
 
     def detectPlate(self, image):
@@ -71,6 +80,15 @@ class PlateRecognition():
         new_image = cv.drawContours(mask, [screenCnt], 0, 255, -1)
         new_image = cv.bitwise_and(image, image, mask=mask)
 
+        # Cropping
+        (x, y) = np.where(mask == 255)
+        (topx, topy) = (np.min(x), np.min(y))
+        (bottomx, bottomy) = (np.max(x), np.max(y))
+        new_image =  gray[topx:bottomx+1, topy:bottomy+1]
+
+        # Applying threshold
+        _, new_image = cv.threshold(new_image, 50, 200, cv.THRESH_BINARY | cv.THRESH_OTSU)
+
         if self.debug:
             runtime = time.perf_counter() - start_time
             print(f'Plate detection {runtime = }')
@@ -80,4 +98,7 @@ class PlateRecognition():
 
 
     def retrive_plate_number(self, image):
-        pass
+        text = pytesseract.image_to_string(image, config='--psm 11')
+        match = re.search(self.text_pattern, text)
+
+        return match[0] if match is not None else ''
