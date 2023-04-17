@@ -16,6 +16,9 @@ class PlateRecognition():
         # self.text_pattern = re.compile(r'[A-Z]{2,3}[ ]?[0-9A-Z]{4,5}') # TODO fix regex
         self.text_pattern = re.compile(r'[a-zA-Z0-9 ]*')
 
+        self.CAPTURE.set(cv.CAP_PROP_FRAME_HEIGHT, 1920)
+        self.CAPTURE.set(cv.CAP_PROP_FRAME_WIDTH, 1080)
+
         if not self.CAPTURE.isOpened():
             print("Cannot open camera")
             exit()
