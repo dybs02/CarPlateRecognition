@@ -13,6 +13,8 @@ class PlateRecognition():
         self.CAPTURE = cv.VideoCapture(0)
         self.debug = debug
         self.frame_rate = 20
+        self.plate_aspect_ratio = 520.0 / 114.0
+        self.plate_area = 18000
         # self.text_pattern = re.compile(r'[A-Z]{2,3}[ ]?[0-9A-Z]{4,5}') # TODO fix regex
         self.text_pattern = re.compile(r'[a-zA-Z0-9 ]*')
 
@@ -47,8 +49,9 @@ class PlateRecognition():
 
 
             if self.debug and plate_img is not None:
-                cv.imshow('Video capture', plate_img)
-                print(f'Found {plate_number = }')
+                cv.imshow('Plate image', plate_img)
+                cv.imshow('Video capture', cv.resize(frame, (854, 480)))
+                print(f'Found {plate_number = }')     
 
 
     def detectPlate(self, image):
@@ -58,18 +61,25 @@ class PlateRecognition():
 
         # Grayscale & noise reduction
         gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
-        gray = cv.bilateralFilter(gray, 11, 17, 17)
+
+        # Disabled for better detection without plate frame
+        # gray = cv.bilateralFilter(gray, 11, 17, 17)
 
         # Edge detection
         edged = cv.Canny(gray, 30, 200) 
         cnts = cv.findContours(edged.copy(), cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
         cnts = imutils.grab_contours(cnts)
-        cnts = sorted(cnts, key = cv.contourArea, reverse = True)[:20]
+        cnts = sorted(cnts, key = cv.contourArea, reverse = True)[:50]
         screenCnt = None
 
         for c in cnts:
+            x, y, w, h = cv.boundingRect(c)
+            aspect_ratio = float(w)/h
+            if abs(aspect_ratio-self.plate_aspect_ratio) > 1.0 and w*h < self.plate_area:
+                continue
+
             peri = cv.arcLength(c, closed=True)
-            approx = cv.approxPolyDP(c, 0.018 * peri, closed=True)
+            approx = cv.approxPolyDP(c, 0.05 * peri, closed=True)
 
             if len(approx) == 4:
                 screenCnt = approx
@@ -87,6 +97,8 @@ class PlateRecognition():
         (x, y) = np.where(mask == 255)
         (topx, topy) = (np.min(x), np.min(y))
         (bottomx, bottomy) = (np.max(x), np.max(y))
+        # Remove unnecessary plate part
+        topy += int((bottomy-topy)*0.12)
         new_image =  gray[topx:bottomx+1, topy:bottomy+1]
 
         # Applying threshold
