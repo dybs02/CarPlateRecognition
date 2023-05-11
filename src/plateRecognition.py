@@ -105,15 +105,20 @@ class PlateRecognition():
 
         if self.debug:
             runtime = time.perf_counter() - start_time
-            print(f'Plate detection {runtime = }')
-            print(f'Time to next frame = {(1.0/self.frame_rate) - runtime}')
+            print(f'Plate detection {runtime = :.5f}s')
         
         return new_image
 
 
     def retrive_plate_number(self, image):
+        start_time = time.perf_counter()
+
         text = pytesseract.image_to_string(image, config='--psm 11')
         text = text.replace(' ', '')
         match = re.search(self.text_pattern, text)
+
+        if self.debug:
+            runtime = time.perf_counter() - start_time
+            print(f'Text detection  {runtime = :.5f}s')
 
         return match[0] if match is not None else ''
