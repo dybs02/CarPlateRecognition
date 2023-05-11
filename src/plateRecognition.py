@@ -15,8 +15,7 @@ class PlateRecognition():
         self.frame_rate = 20
         self.plate_aspect_ratio = 520.0 / 114.0
         self.plate_area = 18000
-        # self.text_pattern = re.compile(r'[A-Z]{2,3}[ ]?[0-9A-Z]{4,5}') # TODO fix regex
-        self.text_pattern = re.compile(r'[a-zA-Z0-9 ]*')
+        self.text_pattern = re.compile(r'[A-Z0-9]{4,8}')
 
         self.CAPTURE.set(cv.CAP_PROP_FRAME_HEIGHT, 1920)
         self.CAPTURE.set(cv.CAP_PROP_FRAME_WIDTH, 1080)
@@ -114,6 +113,7 @@ class PlateRecognition():
 
     def retrive_plate_number(self, image):
         text = pytesseract.image_to_string(image, config='--psm 11')
+        text = text.replace(' ', '')
         match = re.search(self.text_pattern, text)
 
         return match[0] if match is not None else ''
